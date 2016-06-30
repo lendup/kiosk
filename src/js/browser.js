@@ -1,15 +1,15 @@
 $(function(){
 
   var RESTART_DELAY = 1000;
-  var CHECK_SCHEDULE_DELAY = 30 * 1000; //check content against schedule every 30 seconds
-  var DEFAULT_SCHEDULE_POLL_INTERVAL = 15; //minutes
+  var CHECK_SCHEDULE_DELAY = 5 * 1000; //check content against schedule every 5 seconds
+  var DEFAULT_SCHEDULE_POLL_INTERVAL = 1; //minutes
 
   var restarting = false;
   var reset = false;
   var win = window;
   var activeTimeout;
   var restart;
-  var schedule,scheduleURL,defaultURL,currentURL,updateScheduleTimeout,checkScheduleTimeout,schedulepollinterval;
+  var schedule,scheduleURL,defaultURL,currentURL,currentZoom,updateScheduleTimeout,checkScheduleTimeout,schedulepollinterval;
   var hidecursor = false;
   var disablecontextmenu = false;
   var disabledrag = false;
@@ -23,7 +23,8 @@ $(function(){
   window.onkeydown = window.onkeyup = function(e) { if (e.keyCode == 27) { e.preventDefault(); } };
 
   function updateSchedule(){
-    $.getJSON(scheduleURL, function(s) {
+    data = {'poll_interval': schedulepollinterval};
+    $.getJSON(scheduleURL, data, function(s) {
       if(s && s.length && !s.schedule) {
         var temp = s;
         s = {
@@ -61,7 +62,7 @@ $(function(){
     var scheduledContent = [];
     if(s && s.length){
       var now = Date.now();
-      var hasScheduledContent = false;
+      hasScheduledContent = false;
       for(var i = 0; i < s.length; i++){
         if(now >= s[i].start && now < s[i].end){
           hasScheduledContent = true;
@@ -80,6 +81,7 @@ $(function(){
        //only on a change do we want to load
        if(scheduledContent[0].content != currentURL){
           currentURL = scheduledContent[0].content;
+          currentZoom = scheduledContent[0].zoom / 100.0;
           $("#browser").remove();
           loadContent();
        }
@@ -132,7 +134,7 @@ $(function(){
        schedulepollinterval = data.schedulepollinterval ? data.schedulepollinterval : DEFAULT_SCHEDULE_POLL_INTERVAL;
        scheduleURL = data.remotescheduleurl.indexOf('?') >= 0 ? data.remotescheduleurl+'&kiosk_t='+Date.now() : data.remotescheduleurl+'?kiosk_t='+Date.now();
        updateSchedule();
-       setInterval(updateSchedule,schedulepollinterval * 60 * 1000);
+       setInterval(updateSchedule,schedulepollinterval * 1000);
        setInterval(checkSchedule,CHECK_SCHEDULE_DELAY);
      }
 
@@ -232,6 +234,7 @@ $(function(){
          browser.insertCSS({code:"*{-webkit-tap-highlight-color: rgba(0,0,0,0); -webkit-touch-callout: none;}"});
        if(disableselection)
          browser.insertCSS({code:"*{-webkit-user-select: none; user-select: none;}"});
+       browser.setZoom(currentZoom);
        browser.focus();
      })
      .on('loadcommit',function(e){
