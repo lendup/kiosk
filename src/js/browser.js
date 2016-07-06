@@ -2,7 +2,7 @@ $(function(){
 
   var RESTART_DELAY = 1000;
   var CHECK_SCHEDULE_DELAY = 5 * 1000; //check content against schedule every 5 seconds
-  var DEFAULT_SCHEDULE_POLL_INTERVAL = 120; //seconds
+  var DEFAULT_SCHEDULE_POLL_INTERVAL = 30; //seconds
 
   var restarting = false;
   var reset = false;
@@ -34,7 +34,7 @@ $(function(){
       }
       if(s && s.schedule && s.schedule.Value && s.schedule.Value.items && s.schedule.Value.items.length){
         var s = s.schedule.Value.items;
-        var newSchedule;
+        var newSchedule = [];
         for(var i = 0; i < s.length; i++){
           if(s[i].content && s[i].display_time){
             s[i].display_time = s[i].display_time; //display time should already be in seconds
@@ -46,9 +46,22 @@ $(function(){
         if (newSchedule) {
           schedule = newSchedule;
         }
+
         checkSchedule();
       }
+    }).fail(function(){
+      checkSchedule();
     });
+  }
+
+  function tryUpdate(){
+    try {
+      updateSchedule();
+    }
+    catch(e) {
+      checkSchedule();
+      setTimeout(updateSchedule,schedulepollinterval*1000);
+    }
   }
 
   function checkSchedule(){
