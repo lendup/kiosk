@@ -2,10 +2,10 @@
   "name": "Kiosk",
   "description": "Launch any URL as a full-screen kiosk.",
   "manifest_version": 2,
-  "version": "5.7.1",
+  "version": "5.7.3",
   "author": {
-    "name": "ZEBRADOG",
-    "email": "support@zebradog.com"
+    "name": "LendUp",
+    "email": "casie.chen@lendup.com"
   },
   "kiosk_enabled": true,
   "offline_enabled": true,
@@ -25,6 +25,7 @@
     }
   },
   "permissions": [
+    "<all_urls>",
     "system.display",
     "system.network",
     "power",
@@ -36,4 +37,5 @@
     {"fileSystem": ["directory","retainEntries"]}
   ],
   "optional_permissions": [ "audioCapture", "videoCapture" ]
+
 }

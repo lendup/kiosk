@@ -27,7 +27,18 @@ $(function(){
 // All changes in updateSchedule and checkSchedule
 // KNOWN ISSUES: Schedule will not be updated until current URL's display time is over.
   function updateSchedule(){
-    $.getJSON(scheduleURL, function(s) {
+    data = {'poll_interval': schedulepollinterval};
+    $.getJSON(scheduleURL, data, function(s) {
+      if(s && s.length && !s.schedule) {
+        var temp = s;
+        s = {
+          'schedule':{
+            'Value':{
+              'items':temp
+            }
+          }
+        }
+      }
       if(s && s.schedule && s.schedule.Value && s.schedule.Value.length){
         //support schedule.Value as structure or array containing structure
         s.schedule.Value = s.schedule.Value[0];
@@ -52,16 +63,6 @@ $(function(){
     }).fail(function(){
       checkSchedule();
     });
-  }
-
-  function tryUpdate(){
-    try {
-      updateSchedule();
-    }
-    catch(e) {
-      checkSchedule();
-      setTimeout(updateSchedule,schedulepollinterval*1000);
-    }
   }
 
   function checkSchedule(){
@@ -130,11 +131,15 @@ $(function(){
           }
         },60*1000);
      }
-
      if(data.remoteschedule && data.remotescheduleurl){
        schedulepollinterval = data.schedulepollinterval ? data.schedulepollinterval : DEFAULT_SCHEDULE_POLL_INTERVAL;
-       scheduleURL = data.remotescheduleurl;
+       scheduleURL = data.remotescheduleurl.indexOf('?') >= 0 ? data.remotescheduleurl+'&kiosk_t='+Date.now() : data.remotescheduleurl+'?kiosk_t='+Date.now();
        updateSchedule();
+<<<<<<< HEAD
+=======
+       setInterval(updateSchedule,schedulepollinterval * 1000);
+       setInterval(checkSchedule,CHECK_SCHEDULE_DELAY);
+>>>>>>> 5f430a5b51c469279e80aac438338527af03229c
      }
 
      hidecursor = data.hidecursor ? true : false;
@@ -233,6 +238,7 @@ $(function(){
          browser.insertCSS({code:"*{-webkit-tap-highlight-color: rgba(0,0,0,0); -webkit-touch-callout: none;}"});
        if(disableselection)
          browser.insertCSS({code:"*{-webkit-user-select: none; user-select: none;}"});
+       browser.setZoom(currentZoom);
        browser.focus();
        browser.setZoom(currentZoom)
      })
