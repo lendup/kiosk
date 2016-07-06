@@ -2,14 +2,14 @@ $(function(){
 
   var RESTART_DELAY = 1000;
   var CHECK_SCHEDULE_DELAY = 5 * 1000; //check content against schedule every 5 seconds
-  var DEFAULT_SCHEDULE_POLL_INTERVAL = 1; //minutes
+  var DEFAULT_SCHEDULE_POLL_INTERVAL = 120; //seconds
 
   var restarting = false;
   var reset = false;
   var win = window;
   var activeTimeout;
   var restart;
-  var schedule,scheduleURL,defaultURL,currentURL,updateScheduleTimeout,checkScheduleTimeout,schedulepollinterval;
+  var schedule,scheduleURL,defaultURL,currentURL,currentZoom,updateScheduleTimeout,checkScheduleTimeout,schedulepollinterval;
   var hidecursor = false;
   var disablecontextmenu = false;
   var disabledrag = false;
@@ -18,10 +18,14 @@ $(function(){
   var useragent = '';
   var resetcache = false;
   var partition = null;
+  var count = 0;
 
   //prevent existing fullscreen on escape key press
   window.onkeydown = window.onkeyup = function(e) { if (e.keyCode == 27) { e.preventDefault(); } };
 
+
+// All changes in updateSchedule and checkSchedule
+// KNOWN ISSUES: Schedule will not be updated until current URL's display time is over.
   function updateSchedule(){
     $.getJSON(scheduleURL, function(s) {
       if(s && s.schedule && s.schedule.Value && s.schedule.Value.length){
@@ -30,17 +34,18 @@ $(function(){
       }
       if(s && s.schedule && s.schedule.Value && s.schedule.Value.items && s.schedule.Value.items.length){
         var s = s.schedule.Value.items;
+        var newSchedule;
         for(var i = 0; i < s.length; i++){
-          if(s[i].content && s[i].start && s[i].end){
-            s[i].start = new Date(Date.parse(s[i].start));
-            s[i].end = new Date(Date.parse(s[i].end));
-            s[i].duration = (s[i].end - s[i].start) / 1000; //duration is in seconds
+          if(s[i].content && s[i].display_time){
+            s[i].display_time = s[i].display_time; //display time should already be in seconds
+            newSchedule.push(s[i]);
           }else{
-            //item did not include start, end, or content: invalid
             s = s.splice(i--, 1);
           }
         }
-        schedule = s;
+        if (newSchedule) {
+          schedule = newSchedule;
+        }
         checkSchedule();
       }
     });
@@ -48,37 +53,31 @@ $(function(){
 
   function checkSchedule(){
     var s = schedule;
-    var scheduledContent = [];
-    if(s && s.length){
-      var now = Date.now();
-      var hasScheduledContent = false;
-      for(var i = 0; i < s.length; i++){
-        if(now >= s[i].start && now < s[i].end){
-          hasScheduledContent = true;
-          scheduledContent.push(s[i]);
-      }
-    }
+    var hasScheduledContent = false;
 
-    if(hasScheduledContent){
-       //find the latest start time
-       scheduledContent.sort(function(a,b){
-         if(a.start == b.start ) return a;
-         return b.start - a.start;
-       });
+   if (s && s.length){
+    hasScheduledContent = true;
+   }
+   if (hasScheduledContent){
+    var index = count % s.length;
+    currentURL = s[index].content;
+    currentZoom = s[index].zoom/100.0;
+    currentDuration = s[index].display_time;
+    count++;
+    $("#browser").remove();
+    loadContent();
+    setTimeout(updateSchedule, currentDuration*1000);
+   }
+   else if (!hasScheduledContent && currentURL != defaultURL){
+    console.log('checkSchedule: entered no scheduled content');
+    setTimeout(updateSchedule, schedulepollinterval*1000);
+    currentURL = defaultURL;
+    $("#browser").remove();
+    loadContent();
+   }
 
-       //first in the list has the latest start time
-       //only on a change do we want to load
-       if(scheduledContent[0].content != currentURL){
-          currentURL = scheduledContent[0].content;
-          $("#browser").remove();
-          loadContent();
-       }
-    }
-    else if(!hasScheduledContent && currentURL != defaultURL){
-        currentURL = defaultURL;
-        $("#browser").remove();
-        loadContent();
-    }
+   else if (!hasScheduledContent && currentURL == defaultURL){
+    updateSchedule();
    }
  }
 
@@ -123,8 +122,6 @@ $(function(){
        schedulepollinterval = data.schedulepollinterval ? data.schedulepollinterval : DEFAULT_SCHEDULE_POLL_INTERVAL;
        scheduleURL = data.remotescheduleurl;
        updateSchedule();
-       setInterval(updateSchedule,schedulepollinterval * 60 * 1000);
-       setInterval(checkSchedule,CHECK_SCHEDULE_DELAY);
      }
 
      hidecursor = data.hidecursor ? true : false;
@@ -224,6 +221,7 @@ $(function(){
        if(disableselection)
          browser.insertCSS({code:"*{-webkit-user-select: none; user-select: none;}"});
        browser.focus();
+       browser.setZoom(currentZoom)
      })
      .on('loadcommit',function(e){
 	      if(useragent) e.target.setUserAgentOverride(useragent);
