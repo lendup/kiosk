@@ -135,11 +135,6 @@ $(function(){
        schedulepollinterval = data.schedulepollinterval ? data.schedulepollinterval : DEFAULT_SCHEDULE_POLL_INTERVAL;
        scheduleURL = data.remotescheduleurl.indexOf('?') >= 0 ? data.remotescheduleurl+'&kiosk_t='+Date.now() : data.remotescheduleurl+'?kiosk_t='+Date.now();
        updateSchedule();
-<<<<<<< HEAD
-=======
-       setInterval(updateSchedule,schedulepollinterval * 1000);
-       setInterval(checkSchedule,CHECK_SCHEDULE_DELAY);
->>>>>>> 5f430a5b51c469279e80aac438338527af03229c
      }
 
      hidecursor = data.hidecursor ? true : false;
