@@ -27,8 +27,7 @@ $(function(){
 // All changes in updateSchedule and checkSchedule
 // KNOWN ISSUES: Schedule will not be updated until current URL's display time is over.
   function updateSchedule(){
-    data = {'poll_interval': schedulepollinterval};
-    $.getJSON(scheduleURL, data, function(s) {
+    $.getJSON(scheduleURL, function(s) {
       if(s && s.length && !s.schedule) {
         var temp = s;
         s = {
@@ -83,7 +82,6 @@ $(function(){
     setTimeout(updateSchedule, currentDuration*1000);
    }
    else if (!hasScheduledContent && currentURL != defaultURL){
-    console.log('checkSchedule: entered no scheduled content');
     setTimeout(updateSchedule, schedulepollinterval*1000);
     currentURL = defaultURL;
     $("#browser").remove();
@@ -91,7 +89,7 @@ $(function(){
    }
 
    else if (!hasScheduledContent && currentURL == defaultURL){
-    updateSchedule();
+    setTimeout(updateSchedule, schedulepollinterval*1000);
    }
  }
 
