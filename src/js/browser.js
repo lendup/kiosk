@@ -150,11 +150,6 @@ $(function(){
        schedulepollinterval = data.schedulepollinterval ? data.schedulepollinterval : DEFAULT_SCHEDULE_POLL_INTERVAL;
        scheduleURL = data.remotescheduleurl.indexOf('?') >= 0 ? data.remotescheduleurl+'&kiosk_t='+Date.now() : data.remotescheduleurl+'?kiosk_t='+Date.now();
        updateSchedule();
-       if (whitakerSchedule) {
-        console.log('entered setIntervals');
-        setInterval(updateSchedule,schedulepollinterval);
-        setInterval(checkSchedule,CHECK_SCHEDULE_DELAY);
-       }
      }
 
      hidecursor = data.hidecursor ? true : false;
