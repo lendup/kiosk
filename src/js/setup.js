@@ -242,7 +242,7 @@ $(function(){
         //url is valid
         if(schedulepollinterval <= 0 ){
           schedulepollinterval = false;
-          error.push("Schedule Poll Interval must be greater then 0.");
+          error.push("Schedule Poll Interval must be greater than 0.");
         }
       }else{
         schedulepollinterval = false;

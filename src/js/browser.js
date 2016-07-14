@@ -2,14 +2,14 @@ $(function(){
 
   var RESTART_DELAY = 1000;
   var CHECK_SCHEDULE_DELAY = 5 * 1000; //check content against schedule every 5 seconds
-  var DEFAULT_SCHEDULE_POLL_INTERVAL = 1; //minutes
+  var DEFAULT_SCHEDULE_POLL_INTERVAL = 30; //seconds
 
   var restarting = false;
   var reset = false;
   var win = window;
   var activeTimeout;
   var restart;
-  var schedule,scheduleURL,defaultURL,currentURL,currentZoom,updateScheduleTimeout,checkScheduleTimeout,schedulepollinterval;
+  var schedule,scheduleURL,defaultURL,currentURL,currentZoom,updateScheduleTimeout,checkScheduleTimeout,schedulepollinterval, whitakerSchedule;
   var hidecursor = false;
   var disablecontextmenu = false;
   var disabledrag = false;
@@ -18,12 +18,18 @@ $(function(){
   var useragent = '';
   var resetcache = false;
   var partition = null;
+  var count = 0;
 
   //prevent existing fullscreen on escape key press
   window.onkeydown = window.onkeyup = function(e) { if (e.keyCode == 27) { e.preventDefault(); } };
 
+
+// All changes in updateSchedule and checkSchedule
+// KNOWN ISSUES: Schedule will not be updated until current URL's display time is over.
+
   function updateSchedule(){
-    data = {'poll_interval': schedulepollinterval};
+    console.log('entered updateSchedule');
+    data = {'poll_interval' : schedulepollinterval}
     $.getJSON(scheduleURL, data, function(s) {
       if(s && s.length && !s.schedule) {
         var temp = s;
@@ -34,65 +40,75 @@ $(function(){
             }
           }
         }
-      }
+      };
       if(s && s.schedule && s.schedule.Value && s.schedule.Value.length){
         //support schedule.Value as structure or array containing structure
         s.schedule.Value = s.schedule.Value[0];
       }
       if(s && s.schedule && s.schedule.Value && s.schedule.Value.items && s.schedule.Value.items.length){
         var s = s.schedule.Value.items;
+        var newSchedule = [];
         for(var i = 0; i < s.length; i++){
-          if(s[i].content && s[i].start && s[i].end){
-            s[i].start = new Date(Date.parse(s[i].start));
-            s[i].end = new Date(Date.parse(s[i].end));
-            s[i].duration = (s[i].end - s[i].start) / 1000; //duration is in seconds
-          }else{
-            //item did not include start, end, or content: invalid
+          if(s[i].content){
+            if (s[i].display_time) {
+              s[i].display_time = s[i].display_time; //display time should already be in seconds
+              newSchedule.push(s[i]);
+            }
+            else if (s[i].start && s[i].end) {
+              s[i].start = new Date(Date.parse(s[i].start));
+              s[i].end = new Date(Date.parse(s[i].end));
+              s[i].duration = (s[i].end - s[i].start) / 1000; //duration is in seconds
+              newSchedule.push(s[i]);
+            }
+          }
+          else{
             s = s.splice(i--, 1);
           }
         }
-        schedule = s;
+        if (newSchedule) {
+          schedule = newSchedule;
+        }
+
         checkSchedule();
       }
+    }).fail(function(){
+      checkSchedule();
     });
   }
 
   function checkSchedule(){
+    console.log('entered checkSchedule');
     var s = schedule;
-    var scheduledContent = [];
-    if(s && s.length){
-      var now = Date.now();
-      hasScheduledContent = false;
-      for(var i = 0; i < s.length; i++){
-        if(now >= s[i].start && now < s[i].end){
-          hasScheduledContent = true;
-          scheduledContent.push(s[i]);
-      }
+    var hasScheduledContent = false;
+
+    /**start my stuff**/
+    if (s && s.length){
+      hasScheduledContent = true;
+    }
+    if (hasScheduledContent){
+      var index = count % s.length;
+      currentURL = s[index].content;
+      currentZoom = s[index].zoom/100.0;
+      currentDuration = s[index].display_time;
+      count++;
+      $("#browser").remove();
+      loadContent();
+      setTimeout(updateSchedule, currentDuration*1000);
+    }
+    else if (!hasScheduledContent && currentURL != defaultURL){
+      setTimeout(updateSchedule, schedulepollinterval*1000);
+      currentURL = defaultURL;
+      $("#browser").remove();
+      loadContent();
     }
 
-    if(hasScheduledContent){
-       //find the latest start time
-       scheduledContent.sort(function(a,b){
-         if(a.start == b.start ) return a;
-         return b.start - a.start;
-       });
+    else if (!hasScheduledContent && currentURL == defaultURL){
+      setTimeout(updateSchedule, schedulepollinterval*1000);
+    }
+    /**end my stuff**/
 
-       //first in the list has the latest start time
-       //only on a change do we want to load
-       if(scheduledContent[0].content != currentURL){
-          currentURL = scheduledContent[0].content;
-          currentZoom = scheduledContent[0].zoom / 100.0;
-          $("#browser").remove();
-          loadContent();
-       }
-    }
-    else if(!hasScheduledContent && currentURL != defaultURL){
-        currentURL = defaultURL;
-        $("#browser").remove();
-        loadContent();
-    }
-   }
  }
+
 
   chrome.storage.local.get(null,function(data){
      if(data.local){
@@ -134,8 +150,6 @@ $(function(){
        schedulepollinterval = data.schedulepollinterval ? data.schedulepollinterval : DEFAULT_SCHEDULE_POLL_INTERVAL;
        scheduleURL = data.remotescheduleurl.indexOf('?') >= 0 ? data.remotescheduleurl+'&kiosk_t='+Date.now() : data.remotescheduleurl+'?kiosk_t='+Date.now();
        updateSchedule();
-       setInterval(updateSchedule,schedulepollinterval * 1000);
-       setInterval(checkSchedule,CHECK_SCHEDULE_DELAY);
      }
 
      hidecursor = data.hidecursor ? true : false;
