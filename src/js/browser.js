@@ -121,9 +121,6 @@ setInterval(timeSync, 60*1000);
         $("#browser").remove();
         loadContent();
       }
-      else{
-        console.log('entered checkSchedule else'); 
-      }
     }
     else if (!hasScheduledContent && currentURL != defaultURL){
       setTimeout(updateSchedule, schedulepollinterval*1000);
