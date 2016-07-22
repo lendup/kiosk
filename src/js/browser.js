@@ -31,7 +31,7 @@ function timeSync() {
   setTimeout(updateSchedule, msToMin);
 }
 
-timeSync();
+//timeSync();
 setInterval(timeSync, 60*1000);
 
 // All changes in updateSchedule and checkSchedule
@@ -96,7 +96,7 @@ setInterval(timeSync, 60*1000);
     /**start my stuff**/
     if (s && s.length){
       hasScheduledContent = true;
-      }
+    }
 
     if (hasScheduledContent){
 
