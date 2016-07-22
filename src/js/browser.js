@@ -18,11 +18,21 @@ $(function(){
   var useragent = '';
   var resetcache = false;
   var partition = null;
-  var count = 0;
+  var count;
+  var startTime = new Date();
 
   //prevent existing fullscreen on escape key press
   window.onkeydown = window.onkeyup = function(e) { if (e.keyCode == 27) { e.preventDefault(); } };
 
+function timeSync() {
+  var checkTime = new Date();
+  var msToMin = 60*1000 - (checkTime.getSeconds()*1000.0) - checkTime.getMilliseconds();
+  console.log('entered timeSync, time to minute: ' + msToMin/1000.0);
+  setTimeout(updateSchedule, msToMin);
+}
+
+//timeSync();
+setInterval(timeSync, 60*1000);
 
 // All changes in updateSchedule and checkSchedule
 // KNOWN ISSUES: Schedule will not be updated until current URL's display time is over.
@@ -80,20 +90,37 @@ $(function(){
     console.log('entered checkSchedule');
     var s = schedule;
     var hasScheduledContent = false;
+    var now = new Date();
+    var diff = now - startTime;
 
     /**start my stuff**/
     if (s && s.length){
       hasScheduledContent = true;
     }
+
     if (hasScheduledContent){
-      var index = count % s.length;
-      currentURL = s[index].content;
-      currentZoom = s[index].zoom/100.0;
-      currentDuration = s[index].display_time;
-      count++;
-      $("#browser").remove();
-      loadContent();
-      setTimeout(updateSchedule, currentDuration*1000);
+
+      //First load only
+      if (typeof count === 'undefined') {
+        count = 0;
+        currentZoom = s[0].zoom/100.0;
+        currentURL = s[0].content;
+        currentDuration = s[0].display_time*1000.0;
+        setTimeout(updateSchedule, currentDuration);
+        $("#browser").remove();
+        loadContent();
+      }
+      else if (diff >= currentDuration) {
+        count++;
+        index = count % s.length;
+        currentURL = s[index].content;
+        currentZoom = s[index].zoom/100.0;
+        currentDuration = s[index].display_time*1000;
+        setTimeout(updateSchedule, currentDuration);
+        startTime = new Date();
+        $("#browser").remove();
+        loadContent();
+      }
     }
     else if (!hasScheduledContent && currentURL != defaultURL){
       setTimeout(updateSchedule, schedulepollinterval*1000);
